@@ -160,9 +160,9 @@ get_and_process_states <- function(x){
   state_data$`# of cases` <- gsub(",","", as.character(state_data$`# of cases`))
   try(state_data$`# of deaths` <- gsub(",","", as.character(state_data$`# of deaths`)))
   
-  # remove text in parentheses and including the parentheses
-  state_data$`# of cases` <- as.numeric(gsub("\\s*\\([^\\)]+\\)\\s*$","", state_data$`# of cases`))
-  try(state_data$`# of deaths` <- as.numeric(gsub("\\s*\\([^\\)]+\\)\\s*$","", state_data$`# of deaths`)))
+  # remove text after and including the first parenthesis
+  state_data$`# of cases` <- as.numeric(gsub("\\(.*","", state_data$`# of cases`))
+  try(state_data$`# of deaths` <- as.numeric(gsub("\\(.*","", state_data$`# of deaths`)))
   
   # drop rows that are all na 
   state_data <- state_data[rowSums(is.na(state_data)) != ncol(state_data), ]
@@ -190,14 +190,14 @@ get_and_process_states("New_Hampshire")
 get_and_process_states("California")
 get_and_process_states("Louisiana")
 get_and_process_states("Washington,_D.C.")
-get_and_process_states("Alabama")
+get_and_process_states("Colorado")
 ```
 
 
 # Study Unit Test
 
 ```{r}
-state_data <- xml2::read_html("https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_Alabama")
+state_data <- xml2::read_html("https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_Colorado")
 
 #state_data <- state_data %>%
 #  html_nodes(xpath = "/html/body/div[3]/div[3]/div[4]/div/div[4]/div/table") %>%
@@ -262,8 +262,8 @@ state_data <- state_data %>%
 state_data$`# of cases` <- gsub(",","", as.character(state_data$`# of cases`))
 state_data$`# of deaths` <- gsub(",","", as.character(state_data$`# of deaths`))
 # remove text in parentheses and including the parentheses
-state_data$`# of cases` <- as.numeric(gsub("\\s*\\([^\\)]+\\)\\s*$","", state_data$`# of cases`))
-state_data$`# of deaths` <- as.numeric(gsub("\\s*\\([^\\)]+\\)\\s*$","", state_data$`# of deaths`))
+state_data$`# of cases` <- as.numeric(gsub("\\(.*","", state_data$`# of cases`))
+state_data$`# of deaths` <- as.numeric(gsub("\\(.*","", state_data$`# of deaths`))
 
 # drop rows that are all na 
 state_data <- state_data[rowSums(is.na(state_data)) != ncol(state_data), ]
@@ -307,15 +307,15 @@ cleaned_data <- master_data %>%
 
 
 ```{r}
-# saveRDS(cleaned_data, "cleaned_data.rds")
-# write.csv(cleaned_data, "cleaned_data.csv")
+saveRDS(cleaned_data, "cleaned_data.rds")
+write.csv(cleaned_data, "cleaned_data.csv")
 ```
 
 ```{r}
 cleaned_data %>%
-  #mutate(weekday = weekdays(Date)) %>%
   group_by(State) %>%
-  summarise()
+  summarise(total_case = sum(`# of cases`)) %>%
+  arrange(-total_case)
 ```
 
 
