@@ -14,11 +14,17 @@ knitr::opts_chunk$set(echo = TRUE)
 library(rvest)
 library(dplyr)
 library(ggplot2)
+library(readxl)
 ```
 
 
 
 # Data Imports
+
+```{r}
+nst_est2019 <- read_excel("nst-est2019.xlsx", skip = 3)
+```
+
 
 ```{r}
 ma_data <- xml2::read_html("https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_Vermont")
@@ -273,6 +279,31 @@ state_data[is.na(state_data)] <- 0
 state_data$State <- "MA"
 ```
 
+# Clean Census Data
+```{r}
+names(nst_est2019)[1] <- "State"
+nst_est2019 <- nst_est2019[-c(1:5),]
+nst_est2019$State <- gsub('^\\.', '', nst_est2019$State)
+nst_est2019 <- nst_est2019[-c(52:58),]
+nst_est2019 <- nst_est2019 %>%
+  select("State", `2019`)
+```
+
+```{r}
+replace_w_abb <- function(x){
+  if(x == "Washington,_D.C."){
+    "Washington, D.C."
+  } else {
+    state.abb[grep(x, state.name)][1]
+  }
+}
+```
+
+```{r}
+nst_est2019$State <- sapply(nst_est2019$State, replace_w_abb, simplify = TRUE, USE.NAMES = FALSE)
+```
+
+
 
 # Build Dataset
 ```{r}
@@ -305,29 +336,111 @@ cleaned_data <- master_data %>%
   select(-deaths)
 ```
 
+merge covid data and population data
+```{r}
+cleaned_data <- cleaned_data %>%
+  inner_join(nst_est2019, by = "State")
+```
+
+
 
 ```{r}
 saveRDS(cleaned_data, "cleaned_data.rds")
 write.csv(cleaned_data, "cleaned_data.csv")
 ```
 
+# Visualizations
+
 ```{r}
 cleaned_data %>%
   group_by(State) %>%
-  summarise(total_case = sum(`# of cases`)) %>%
-  arrange(-total_case)
+  summarise(total_case = max(`# of cases`)) %>%
+  arrange(-total_case) %>%
+  top_n(20, total_case) %>%
+  ggplot(aes(x = reorder(State, total_case), y = total_case)) +
+  geom_col() +
+  theme_bw() + 
+  coord_flip() +
+  ylab("Total Number of Cases") +
+  xlab("State") +
+  ggtitle("Total Number of COVID-19 Cases in the 20 States with the Most Infections") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+cleaned_data %>%
+  group_by(State) %>%
+  summarise(total_deaths = max(`# of deaths`)) %>%
+  arrange(-total_deaths) %>%
+  top_n(20, total_deaths) %>%
+  ggplot(aes(x = reorder(State, total_deaths), y = total_deaths)) +
+  geom_col() +
+  theme_bw() + 
+  coord_flip() +
+  ylab("Total Number of Deaths") +
+  xlab("State") +
+  ggtitle("Total Number of COVID-19 Deaths in the 20 States with the Most Fatalities") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+cleaned_data %>%
+  group_by(State) %>%
+   summarise(total_deaths = max(`# of deaths`),
+         total_cases = max(`# of cases`)) %>%
+  filter(total_deaths > 0) %>%
+  mutate(fatality_rate = total_deaths/total_cases*100) %>%
+  arrange(-fatality_rate) %>%
+  top_n(20, fatality_rate) %>%
+  ggplot(aes(x = reorder(State, fatality_rate), y = fatality_rate)) +
+  geom_col() +
+  theme_bw() + 
+  coord_flip() +
+  ylab("%Fatalities") +
+  xlab("State") +
+  ggtitle("%Fatalities for the 20 States with the Highest %Fatalities") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
+
+```{r}
+cleaned_data %>%
+  group_by(State) %>%
+  summarise(total_deaths = max(`# of deaths`),
+         total_cases = max(`# of cases`)) %>%
+  ggplot(aes(x = total_cases, y = total_deaths, colour = State)) +
+  geom_point() +
+  theme_bw()
+plotly::ggplotly()
+```
+
+
 
 
 ```{r}
 cleaned_data %>%
   filter(`# of cases` > 0) %>%
-  filter(Date >= as.Date("2020-03-10")) %>%
+  #filter(Date >= as.Date("2020-03-10")) %>%
   ggplot(aes(x = Date, y = `# of cases`, colour = State)) +
   geom_line() +
-  theme_bw() +
-  ylim(0, 10000)
+  theme_bw()
 plotly::ggplotly()
 ```
+
+
+
+```{r}
+cleaned_data %>%
+  filter(`# of cases` > 0) %>%
+  #filter(Date >= as.Date("2020-03-10")) %>%
+  ggplot(aes(x = Date, y = `# of deaths`, colour = State)) +
+  geom_line() +
+  theme_bw()
+```
+
+
+
+
+
+
+
+
+
+
 
 
