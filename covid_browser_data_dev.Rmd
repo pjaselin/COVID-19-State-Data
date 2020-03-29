@@ -1,6 +1,5 @@
 ---
 title: "COVID-19 State Data"
-author: "Patrick Aselin"
 date: "3/27/2020"
 output: html_document
 ---
@@ -163,11 +162,13 @@ get_and_process_states <- function(x){
   
   
   # first replace all commas with ""
-  state_data$`# of cases` <- gsub(",","", as.character(state_data$`# of cases`))
+  try(state_data$`# of cases` <- gsub(",","", as.character(state_data$`# of cases`)))
+  try(state_data$`of cases` <- gsub(",","", as.character(state_data$`of cases`)))
   try(state_data$`# of deaths` <- gsub(",","", as.character(state_data$`# of deaths`)))
   
   # remove text after and including the first parenthesis
-  state_data$`# of cases` <- as.numeric(gsub("\\(.*","", state_data$`# of cases`))
+  try(state_data$`# of cases` <- as.numeric(gsub("\\(.*","", state_data$`# of cases`)))
+  try(state_data$`of cases` <- as.numeric(gsub("\\(.*","", state_data$`of cases`)))
   try(state_data$`# of deaths` <- as.numeric(gsub("\\(.*","", state_data$`# of deaths`)))
   
   # drop rows that are all na 
@@ -176,7 +177,7 @@ get_and_process_states <- function(x){
   # set all NAs to 0
   state_data[is.na(state_data)] <- 0
   if (state_name_cleaned %in% state.name){
-    state_data$State <- state.abb[grep(state_name_cleaned, state.name)]
+    state_data$State <- state.abb[grep(state_name_cleaned, state.name)][1]
   } else {
     state_data$State <- state_name_cleaned
   }
@@ -196,14 +197,14 @@ get_and_process_states("New_Hampshire")
 get_and_process_states("California")
 get_and_process_states("Louisiana")
 get_and_process_states("Washington,_D.C.")
-get_and_process_states("Colorado")
+get_and_process_states("Wyoming")
 ```
 
 
 # Study Unit Test
 
 ```{r}
-state_data <- xml2::read_html("https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_Colorado")
+state_data <- xml2::read_html("https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_Wyoming")
 
 #state_data <- state_data %>%
 #  html_nodes(xpath = "/html/body/div[3]/div[3]/div[4]/div/div[4]/div/table") %>%
@@ -310,7 +311,7 @@ nst_est2019$State <- sapply(nst_est2019$State, replace_w_abb, simplify = TRUE, U
 available_states = c('Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia_(U.S._state)', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New_Hampshire', 'New_Jersey', 'New_Mexico', 'New_York_(state)', 'North_Carolina', 'North_Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode_Island', 'South_Carolina', 'South_Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', "Washington_(state)", "Washington,_D.C.", 'West_Virginia', 'Wisconsin', 'Wyoming')
 ```
 
-```{r message=FALSE, warning=FALSE}
+```{r}
 master_state_data <- list()
 for (state in available_states){
   master_state_data[[state]] <- get_and_process_states(state)
@@ -325,7 +326,9 @@ master_data <- data.table::rbindlist(master_state_data, fill = TRUE)
 ```{r}
 # master_data[is.na(master_data)] <- NA
 master_data$deaths <- as.numeric(master_data$deaths)
+master_data$`of cases` <- as.numeric(master_data$`of cases`)
 master_data$deaths[is.na(master_data$deaths)] <- 0
+master_data$`of cases`[is.na(master_data$`of cases`)] <- 0
 ```
 
 merge # deaths and deaths column
@@ -333,7 +336,8 @@ merge # deaths and deaths column
 ```{r}
 cleaned_data <- master_data %>%
   mutate(`# of deaths` = `# of deaths` + deaths) %>%
-  select(-deaths)
+  mutate(`# of cases` = `# of cases` + `of cases`) %>%
+  select(-deaths, -`of cases`)
 ```
 
 merge covid data and population data
@@ -431,6 +435,7 @@ cleaned_data %>%
   ggplot(aes(x = Date, y = `# of deaths`, colour = State)) +
   geom_line() +
   theme_bw()
+plotly::ggplotly()
 ```
 
 
