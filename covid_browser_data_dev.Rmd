@@ -389,11 +389,12 @@ cleaned_data %>%
    summarise(total_deaths = max(`# of deaths`),
          total_cases = max(`# of cases`)) %>%
   filter(total_deaths > 0) %>%
-  mutate(fatality_rate = total_deaths/total_cases*100) %>%
+  mutate(fatality_rate = total_deaths/total_cases) %>%
   arrange(-fatality_rate) %>%
   top_n(20, fatality_rate) %>%
   ggplot(aes(x = reorder(State, fatality_rate), y = fatality_rate)) +
   geom_col() +
+  geom_text(aes(label = scales::percent(round(fatality_rate, 3))), hjust = -0.1, size = 3) +
   theme_bw() + 
   coord_flip() +
   ylab("%Fatalities") +
