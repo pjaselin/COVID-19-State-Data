@@ -48,6 +48,10 @@ get_and_process_states <- function(x){
         html_nodes(xpath =  "/html/body/div[3]/div[3]/div[4]/div/div[4]/div/table") %>%
         html_table() %>%
         magrittr::extract2(1))
+  try(state_data <- state_data %>%
+        html_nodes(xpath =  '//*[@id="mw-content-text"]/div/div[9]/div/table') %>%
+        html_table() %>%
+        magrittr::extract2(1))
   
   # choose the first item from the list 
   state_data <- state_data[-c(dim(state_data)[1]), -c(1,3)]
