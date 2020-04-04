@@ -52,6 +52,18 @@ get_and_process_states <- function(x){
         html_nodes(xpath =  '//*[@id="mw-content-text"]/div/div[9]/div/table') %>%
         html_table() %>%
         magrittr::extract2(1))
+  try(state_data <- state_data %>%
+        html_nodes(xpath =  "/html/body/div[3]/div[3]/div[4]/div/div[5]/div/div/div/table") %>%
+        html_table() %>%
+        magrittr::extract2(1))
+  try(state_data <- state_data %>%
+        html_nodes(xpath =  "/html/body/div[3]/div[3]/div[4]/div/div[8]/div/table") %>%
+        html_table() %>%
+        magrittr::extract2(1))
+  try(state_data <- state_data %>%
+        html_nodes(xpath =  "/html/body/div[3]/div[3]/div[4]/div/table[4]/tbody/tr/td/div/div/table") %>%
+        html_table() %>%
+        magrittr::extract2(1))
   
   # choose the first item from the list 
   state_data <- state_data[-c(dim(state_data)[1]), -c(1,3)]
@@ -114,6 +126,7 @@ available_states = c('Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', '
 # loop through the above vector and generate a list of the results
 master_state_data <- list()
 for (state in available_states){
+  print(state)
   master_state_data[[state]] <- get_and_process_states(state)
 }
 
